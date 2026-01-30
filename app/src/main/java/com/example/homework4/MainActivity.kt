@@ -1,6 +1,9 @@
 package com.example.homework4
 
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.location.Geocoder
+import android.location.LocationManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,20 +13,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.homework2.MainActivity.WeatherApiService
 import com.example.homework4.ui.theme.Homework4Theme
-import io.ktor.client.*
-import io.ktor.client.request.*
+import java.util.Locale
 
 enum class TemperatureUnit {
     Celsius,
@@ -41,30 +43,29 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    val locationPermissionRequester = LocationPermissionRequester(this, viewModel())
-                    val weatherApiService = WeatherApiService("your_api_key_here")
+                    val weatherApiService = remember { WeatherApiService("your_api_key_here") }
                     val temperatureUnit = remember { mutableStateOf(TemperatureUnit.Celsius) }
 
                     NavHost(navController = navController, startDestination = "welcome_screen") {
                         composable("welcome_screen") {
                             WelcomeScreen(
-                                navController,
-                                locationPermissionRequester,
-                                weatherApiService,
-                                temperatureUnit.value
-                            ) { selectedUnit ->
-                                temperatureUnit.value = selectedUnit
-                            }
+                                navController = navController,
+                                weatherApiService = weatherApiService,
+                                temperatureUnit = temperatureUnit.value,
+                                onTemperatureUnitChanged = { selectedUnit ->
+                                    temperatureUnit.value = selectedUnit
+                                }
+                            )
                         }
                         composable("second_screen/{cityName}") { backStackEntry ->
                             val cityName = backStackEntry.arguments?.getString("cityName") ?: ""
                             val cityInfo = citiesInfo.find { it.cityName == cityName }
                             cityInfo?.let {
                                 SecondScreen(
-                                    cityInfo,
-                                    navController,
-                                    weatherApiService,
-                                    temperatureUnit.value
+                                    cityInfo = it,
+                                    navController = navController,
+                                    weatherApiService = weatherApiService,
+                                    temperatureUnit = temperatureUnit.value
                                 )
                             }
                         }
@@ -74,60 +75,104 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
+    @SuppressLint("MissingPermission")
+    private fun getCurrentCity(): String? {
+        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        val location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            ?: locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+        if (location != null) {
+            val geocoder = Geocoder(this, Locale.getDefault())
+            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+            return addresses?.firstOrNull()?.locality
+        }
+        return null
+    }
 
     @Composable
     fun WelcomeScreen(
         navController: NavHostController,
-        locationPermissionRequester: LocationPermissionRequester,
         weatherApiService: WeatherApiService,
         temperatureUnit: TemperatureUnit,
         onTemperatureUnitChanged: (TemperatureUnit) -> Unit
     ) {
+        var locationWeather by remember { mutableStateOf<String?>(null) }
 
-        DisposableEffect(Unit) {
-            locationPermissionRequester.requestLocationPermission { weatherInfo ->
-                Text(
-                    text = "Current Location Weather: $weatherInfo",
-                    style = TextStyle(fontSize = 16.sp),
-                    modifier = Modifier.padding(8.dp)
-                )
-            }
-            onDispose { }
-        }
-
-        // ...
-
-        LaunchedEffect(locationPermissionRequester) {
+        LaunchedEffect(temperatureUnit) {
             if (ContextCompat.checkSelfPermission(
-                    activity,
+                    this@MainActivity,
                     android.Manifest.permission.ACCESS_FINE_LOCATION
                 ) == PackageManager.PERMISSION_GRANTED
             ) {
                 try {
-                    val location =
-                        getCurrentCity()
-                    val currentLocationWeather = weatherApiService.getWeatherForCity(location)
-
-                    currentLocationWeather?.let {
-                        val temperatureValue = if (temperatureUnit == TemperatureUnit.Celsius) {
-                            it.current.temp_c.toString() + "°C"
-                        } else {
-                            it.current.temp_c.toString() + "°F"
+                    val city = getCurrentCity()
+                    if (city != null) {
+                        val weather = weatherApiService.getWeatherForCity(city)
+                        weather?.let {
+                            locationWeather = if (temperatureUnit == TemperatureUnit.Celsius) {
+                                "$city: ${it.current.temp_c}°C"
+                            } else {
+                                "$city: ${it.current.temp_f}°F"
+                            }
                         }
-
-                        Text(
-                            text = "Current Location Temperature: $temperatureValue",
-                            style = TextStyle(fontSize = 16.sp),
-                            modifier = Modifier.padding(8.dp)
-                        )
                     }
                 } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
         }
 
-    }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "City Explorer",
+                style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
+            locationWeather?.let {
+                Text(
+                    text = "Current Location: $it",
+                    style = TextStyle(fontSize = 16.sp),
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            citiesInfo.forEach { city ->
+                Button(
+                    onClick = { navController.navigate("second_screen/${city.cityName}") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                ) {
+                    Text(text = "Explore ${city.cityName}")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                val newUnit = if (temperatureUnit == TemperatureUnit.Celsius) {
+                    TemperatureUnit.Fahrenheit
+                } else {
+                    TemperatureUnit.Celsius
+                }
+                onTemperatureUnitChanged(newUnit)
+            }) {
+                Text(
+                    text = "Switch to ${
+                        if (temperatureUnit == TemperatureUnit.Celsius) "Fahrenheit" else "Celsius"
+                    }"
+                )
+            }
+        }
+    }
 
     @Composable
     fun SecondScreen(
@@ -136,42 +181,62 @@ class MainActivity : ComponentActivity() {
         weatherApiService: WeatherApiService,
         temperatureUnit: TemperatureUnit
     ) {
-        // ...
+        var weatherText by remember { mutableStateOf("Loading...") }
 
-        LaunchedEffect(cityInfo) {
+        LaunchedEffect(cityInfo, temperatureUnit) {
             try {
                 val weatherResponse = weatherApiService.getWeatherForCity(cityInfo.cityName)
-                val temperature = weatherResponse.current.temp_c
-
-                val temperatureValue = if (temperatureUnit == TemperatureUnit.Celsius) {
-                    temperature.toString() + "°C"
+                if (weatherResponse != null) {
+                    weatherText = if (temperatureUnit == TemperatureUnit.Celsius) {
+                        "${weatherResponse.current.temp_c}°C"
+                    } else {
+                        "${weatherResponse.current.temp_f}°F"
+                    }
                 } else {
-                    val temperatureFahrenheit = (temperature * 9 / 5) + 32
-                    temperatureFahrenheit.toString() + "°F"
+                    weatherText = "Unable to load weather data"
                 }
-
-                temperature = temperatureValue.toFloat()
             } catch (e: Exception) {
+                weatherText = "Error: ${e.message}"
             }
         }
 
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = cityInfo.cityName,
+                style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Text(
+                text = "Temperature: $weatherText",
+                style = TextStyle(fontSize = 18.sp),
+                modifier = Modifier.padding(8.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(onClick = { navController.popBackStack() }) {
+                Text(text = "Back")
+            }
+        }
     }
 
     class LocationPermissionRequester(
         private val activity: ComponentActivity,
         private val viewModel: LocationPermissionViewModel
     ) {
-
-        @Composable
-        fun requestLocationPermission(onWeatherInfoReceived: (String) -> Unit) {
-
-            citiesInfo.forEach { city ->
-                Button(
-                    onClick = { navController.navigate("second_screen/${city.cityName}") },
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(text = "Städte erkunden in ${city.cityName}")
-                }
+        fun requestLocationPermission() {
+            if (ContextCompat.checkSelfPermission(
+                    activity,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                viewModel.onPermissionRequested()
             }
         }
     }
@@ -182,7 +247,6 @@ class MainActivity : ComponentActivity() {
         onTemperatureUnitChanged: (TemperatureUnit) -> Unit
     ) {
     }
-
 
     class LocationPermissionViewModel : androidx.lifecycle.ViewModel() {
         var isPermissionRequested by mutableStateOf(false)
