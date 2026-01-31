@@ -15,14 +15,6 @@ class ExampleUnitTest {
     private val mockWeatherApiService = mockk<WeatherApiService>()
 
     @Test
-    fun testLocationPermissionViewModel() {
-        val locationPermissionViewModel = MainActivity.LocationPermissionViewModel()
-        assertFalse(locationPermissionViewModel.isPermissionRequested)
-        locationPermissionViewModel.onPermissionRequested()
-        assertTrue(locationPermissionViewModel.isPermissionRequested)
-    }
-
-    @Test
     fun testWeatherApiService() {
         val cityName = "Berlin"
         val mockWeatherResponse = WeatherResponse(
