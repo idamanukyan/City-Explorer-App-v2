@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 val localProperties = java.util.Properties()
@@ -86,7 +87,5 @@ dependencies {
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
     implementation ("io.ktor:ktor-client-android:1.7.4")
     implementation ("io.ktor:ktor-client-core:1.7.4")
-    implementation ("io.ktor:ktor-client-serialization:1.7.4")
-
-
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 }

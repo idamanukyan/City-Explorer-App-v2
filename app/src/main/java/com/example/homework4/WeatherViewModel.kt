@@ -7,16 +7,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 
-sealed class WeatherUiState {
-    object Idle : WeatherUiState()
-    object Loading : WeatherUiState()
-    data class Success(val temperature: String) : WeatherUiState()
-    data class Error(val message: String) : WeatherUiState()
-}
-
 class WeatherViewModel : ViewModel() {
 
-    private val weatherApiService = WeatherApiService(BuildConfig.WEATHER_API_KEY)
+    private val repository: WeatherRepository = WeatherRepositoryImpl(
+        WeatherApiService(BuildConfig.WEATHER_API_KEY)
+    )
 
     var temperatureUnit by mutableStateOf(TemperatureUnit.Celsius)
         private set
@@ -44,14 +39,10 @@ class WeatherViewModel : ViewModel() {
         viewModelScope.launch {
             locationWeatherState = WeatherUiState.Loading
             try {
-                val weather = weatherApiService.getWeatherForCity(city)
-                if (weather != null) {
-                    cachedLocationCity = city
-                    cachedLocationWeather = weather
-                    locationWeatherState = WeatherUiState.Success(formatLocationTemp(city, weather))
-                } else {
-                    locationWeatherState = WeatherUiState.Error("Unable to load weather data")
-                }
+                val weather = repository.getWeatherForCity(city)
+                cachedLocationCity = city
+                cachedLocationWeather = weather
+                locationWeatherState = WeatherUiState.Success(formatLocationTemp(city, weather))
             } catch (e: Exception) {
                 locationWeatherState = WeatherUiState.Error("Failed to fetch weather")
             }
@@ -62,13 +53,9 @@ class WeatherViewModel : ViewModel() {
         viewModelScope.launch {
             cityWeatherState = WeatherUiState.Loading
             try {
-                val weather = weatherApiService.getWeatherForCity(cityName)
-                if (weather != null) {
-                    cachedCityWeather = weather
-                    cityWeatherState = WeatherUiState.Success(formatCityTemp(weather))
-                } else {
-                    cityWeatherState = WeatherUiState.Error("Unable to load weather data")
-                }
+                val weather = repository.getWeatherForCity(cityName)
+                cachedCityWeather = weather
+                cityWeatherState = WeatherUiState.Success(formatCityTemp(weather))
             } catch (e: Exception) {
                 cityWeatherState = WeatherUiState.Error("Failed to fetch weather")
             }
