@@ -5,13 +5,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.homework4.data.PreferencesRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class WeatherViewModel : ViewModel() {
-
-    private val repository: WeatherRepository = WeatherRepositoryImpl(
-        WeatherApiService(BuildConfig.WEATHER_API_KEY)
-    )
+@HiltViewModel
+class WeatherViewModel @Inject constructor(
+    private val repository: WeatherRepository,
+    private val locationRepository: LocationRepository,
+    private val temperatureFormatter: TemperatureFormatter,
+    private val preferencesRepository: PreferencesRepository
+) : ViewModel() {
 
     var temperatureUnit by mutableStateOf(TemperatureUnit.Celsius)
         private set
@@ -26,13 +31,30 @@ class WeatherViewModel : ViewModel() {
     private var cachedLocationWeather: WeatherResponse? = null
     private var cachedCityWeather: WeatherResponse? = null
 
+    init {
+        viewModelScope.launch {
+            preferencesRepository.temperatureUnitFlow.collect { unit ->
+                temperatureUnit = unit
+                refreshDisplayStrings()
+            }
+        }
+    }
+
     fun toggleTemperatureUnit() {
-        temperatureUnit = if (temperatureUnit == TemperatureUnit.Celsius) {
+        val newUnit = if (temperatureUnit == TemperatureUnit.Celsius) {
             TemperatureUnit.Fahrenheit
         } else {
             TemperatureUnit.Celsius
         }
-        refreshDisplayStrings()
+        viewModelScope.launch {
+            preferencesRepository.setTemperatureUnit(newUnit)
+        }
+    }
+
+    fun setTemperatureUnit(unit: TemperatureUnit) {
+        viewModelScope.launch {
+            preferencesRepository.setTemperatureUnit(unit)
+        }
     }
 
     fun fetchLocationWeather(city: String) {
@@ -42,9 +64,22 @@ class WeatherViewModel : ViewModel() {
                 val weather = repository.getWeatherForCity(city)
                 cachedLocationCity = city
                 cachedLocationWeather = weather
-                locationWeatherState = WeatherUiState.Success(formatLocationTemp(city, weather))
+                locationWeatherState = WeatherUiState.Success(
+                    temperatureFormatter.formatLocationTemp(city, weather, temperatureUnit)
+                )
             } catch (e: Exception) {
                 locationWeatherState = WeatherUiState.Error("Failed to fetch weather")
+            }
+        }
+    }
+
+    fun fetchLocationWeatherFromDevice() {
+        viewModelScope.launch {
+            val city = locationRepository.getCurrentCity()
+            if (city != null) {
+                fetchLocationWeather(city)
+            } else {
+                locationWeatherState = WeatherUiState.Error("Could not determine your city")
             }
         }
     }
@@ -55,7 +90,9 @@ class WeatherViewModel : ViewModel() {
             try {
                 val weather = repository.getWeatherForCity(cityName)
                 cachedCityWeather = weather
-                cityWeatherState = WeatherUiState.Success(formatCityTemp(weather))
+                cityWeatherState = WeatherUiState.Success(
+                    temperatureFormatter.formatCityTemp(weather, temperatureUnit)
+                )
             } catch (e: Exception) {
                 cityWeatherState = WeatherUiState.Error("Failed to fetch weather")
             }
@@ -69,27 +106,15 @@ class WeatherViewModel : ViewModel() {
     private fun refreshDisplayStrings() {
         cachedLocationWeather?.let { weather ->
             cachedLocationCity?.let { city ->
-                locationWeatherState = WeatherUiState.Success(formatLocationTemp(city, weather))
+                locationWeatherState = WeatherUiState.Success(
+                    temperatureFormatter.formatLocationTemp(city, weather, temperatureUnit)
+                )
             }
         }
         cachedCityWeather?.let { weather ->
-            cityWeatherState = WeatherUiState.Success(formatCityTemp(weather))
-        }
-    }
-
-    private fun formatLocationTemp(city: String, weather: WeatherResponse): String {
-        return if (temperatureUnit == TemperatureUnit.Celsius) {
-            "$city: ${weather.current.temp_c}°C"
-        } else {
-            "$city: ${weather.current.temp_f}°F"
-        }
-    }
-
-    private fun formatCityTemp(weather: WeatherResponse): String {
-        return if (temperatureUnit == TemperatureUnit.Celsius) {
-            "${weather.current.temp_c}°C"
-        } else {
-            "${weather.current.temp_f}°F"
+            cityWeatherState = WeatherUiState.Success(
+                temperatureFormatter.formatCityTemp(weather, temperatureUnit)
+            )
         }
     }
 }

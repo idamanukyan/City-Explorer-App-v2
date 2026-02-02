@@ -36,11 +36,7 @@ fun SettingsScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             RadioButton(
                 selected = viewModel.temperatureUnit == TemperatureUnit.Celsius,
-                onClick = {
-                    if (viewModel.temperatureUnit != TemperatureUnit.Celsius) {
-                        viewModel.toggleTemperatureUnit()
-                    }
-                }
+                onClick = { viewModel.setTemperatureUnit(TemperatureUnit.Celsius) }
             )
             Text(
                 text = "Celsius (\u00B0C)",
@@ -51,11 +47,7 @@ fun SettingsScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             RadioButton(
                 selected = viewModel.temperatureUnit == TemperatureUnit.Fahrenheit,
-                onClick = {
-                    if (viewModel.temperatureUnit != TemperatureUnit.Fahrenheit) {
-                        viewModel.toggleTemperatureUnit()
-                    }
-                }
+                onClick = { viewModel.setTemperatureUnit(TemperatureUnit.Fahrenheit) }
             )
             Text(
                 text = "Fahrenheit (\u00B0F)",

@@ -19,8 +19,7 @@ import androidx.navigation.NavHostController
 @Composable
 fun WelcomeScreen(
     viewModel: WeatherViewModel,
-    navController: NavHostController,
-    getCurrentCity: () -> String?
+    navController: NavHostController
 ) {
     val context = LocalContext.current
     var hasRequestedPermission by remember { mutableStateOf(false) }
@@ -29,12 +28,7 @@ fun WelcomeScreen(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            val city = getCurrentCity()
-            if (city != null) {
-                viewModel.fetchLocationWeather(city)
-            } else {
-                viewModel.setLocationError("Could not determine your city")
-            }
+            viewModel.fetchLocationWeatherFromDevice()
         } else {
             viewModel.setLocationError("Location permission denied")
         }
@@ -49,12 +43,7 @@ fun WelcomeScreen(
         ) == PackageManager.PERMISSION_GRANTED
 
         if (hasPermission) {
-            val city = getCurrentCity()
-            if (city != null) {
-                viewModel.fetchLocationWeather(city)
-            } else {
-                viewModel.setLocationError("Could not determine your city")
-            }
+            viewModel.fetchLocationWeatherFromDevice()
         } else if (!hasRequestedPermission) {
             hasRequestedPermission = true
             permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
@@ -106,12 +95,7 @@ fun WelcomeScreen(
                     modifier = Modifier.padding(8.dp)
                 )
                 Button(
-                    onClick = {
-                        val city = getCurrentCity()
-                        if (city != null) {
-                            viewModel.fetchLocationWeather(city)
-                        }
-                    },
+                    onClick = { viewModel.fetchLocationWeatherFromDevice() },
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
                     Text(text = "Retry")

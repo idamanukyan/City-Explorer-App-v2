@@ -33,11 +33,11 @@ class ExampleUnitTest {
             current = Current(temp_c = tempC, temp_f = tempF)
         )
 
-        val celsiusDisplay = "${response.current.temp_c}°C"
-        assertEquals("20.0°C", celsiusDisplay)
+        val celsiusDisplay = "${response.current.temp_c}\u00B0C"
+        assertEquals("20.0\u00B0C", celsiusDisplay)
 
-        val fahrenheitDisplay = "${response.current.temp_f}°F"
-        assertEquals("68.0°F", fahrenheitDisplay)
+        val fahrenheitDisplay = "${response.current.temp_f}\u00B0F"
+        assertEquals("68.0\u00B0F", fahrenheitDisplay)
     }
 
     @Test
@@ -63,8 +63,22 @@ class ExampleUnitTest {
 
     @Test
     fun testTemperatureUnitEnum() {
-        assertEquals(2, TemperatureUnit.values().size)
+        assertEquals(2, TemperatureUnit.entries.size)
         assertEquals(TemperatureUnit.Celsius, TemperatureUnit.valueOf("Celsius"))
         assertEquals(TemperatureUnit.Fahrenheit, TemperatureUnit.valueOf("Fahrenheit"))
+    }
+
+    @Test
+    fun testTemperatureFormatter() {
+        val formatter = TemperatureFormatter()
+        val response = WeatherResponse(
+            location = Location(name = "Berlin"),
+            current = Current(temp_c = 20.0f, temp_f = 68.0f)
+        )
+
+        assertEquals("Berlin: 20.0\u00B0C", formatter.formatLocationTemp("Berlin", response, TemperatureUnit.Celsius))
+        assertEquals("Berlin: 68.0\u00B0F", formatter.formatLocationTemp("Berlin", response, TemperatureUnit.Fahrenheit))
+        assertEquals("20.0\u00B0C", formatter.formatCityTemp(response, TemperatureUnit.Celsius))
+        assertEquals("68.0\u00B0F", formatter.formatCityTemp(response, TemperatureUnit.Fahrenheit))
     }
 }
