@@ -82,7 +82,7 @@ fun WelcomeScreen(
             }
             is WeatherUiState.Success -> {
                 Text(
-                    text = "Current Location: ${state.temperature}",
+                    text = "${state.data.locationName}: ${state.data.temperature}",
                     style = TextStyle(fontSize = 16.sp),
                     modifier = Modifier.padding(8.dp)
                 )

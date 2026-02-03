@@ -42,8 +42,27 @@ class WeatherRepositoryImpl @Inject constructor(
 
     private fun WeatherEntity.toWeatherResponse(): WeatherResponse {
         return WeatherResponse(
-            location = Location(name = locationName),
-            current = Current(temp_c = tempCelsius, temp_f = tempFahrenheit)
+            location = Location(
+                name = locationName,
+                country = country,
+                localtime = localtime
+            ),
+            current = Current(
+                temp_c = tempCelsius,
+                temp_f = tempFahrenheit,
+                condition = Condition(
+                    text = conditionText,
+                    icon = conditionIcon
+                ),
+                humidity = humidity,
+                wind_kph = windKph,
+                wind_mph = windMph,
+                wind_dir = windDir,
+                feelslike_c = feelslikeCelsius,
+                feelslike_f = feelslikeFahrenheit,
+                uv = uv,
+                is_day = isDay
+            )
         )
     }
 
@@ -53,6 +72,18 @@ class WeatherRepositoryImpl @Inject constructor(
             locationName = location.name,
             tempCelsius = current.temp_c,
             tempFahrenheit = current.temp_f,
+            country = location.country,
+            localtime = location.localtime,
+            conditionText = current.condition.text,
+            conditionIcon = current.condition.icon,
+            humidity = current.humidity,
+            windKph = current.wind_kph,
+            windMph = current.wind_mph,
+            windDir = current.wind_dir,
+            feelslikeCelsius = current.feelslike_c,
+            feelslikeFahrenheit = current.feelslike_f,
+            uv = current.uv,
+            isDay = current.is_day,
             lastUpdated = System.currentTimeMillis()
         )
     }

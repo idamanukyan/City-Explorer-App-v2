@@ -76,9 +76,12 @@ class ExampleUnitTest {
             current = Current(temp_c = 20.0f, temp_f = 68.0f)
         )
 
-        assertEquals("Berlin: 20.0\u00B0C", formatter.formatLocationTemp("Berlin", response, TemperatureUnit.Celsius))
-        assertEquals("Berlin: 68.0\u00B0F", formatter.formatLocationTemp("Berlin", response, TemperatureUnit.Fahrenheit))
-        assertEquals("20.0\u00B0C", formatter.formatCityTemp(response, TemperatureUnit.Celsius))
-        assertEquals("68.0\u00B0F", formatter.formatCityTemp(response, TemperatureUnit.Fahrenheit))
+        val celsiusData = formatter.formatWeatherData(response, TemperatureUnit.Celsius)
+        assertEquals("20.0\u00B0C", celsiusData.temperature)
+        assertEquals("Berlin", celsiusData.locationName)
+
+        val fahrenheitData = formatter.formatWeatherData(response, TemperatureUnit.Fahrenheit)
+        assertEquals("68.0\u00B0F", fahrenheitData.temperature)
+        assertEquals("Berlin", fahrenheitData.locationName)
     }
 }

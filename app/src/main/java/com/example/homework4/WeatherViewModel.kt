@@ -27,7 +27,6 @@ class WeatherViewModel @Inject constructor(
     var cityWeatherState: WeatherUiState by mutableStateOf(WeatherUiState.Idle)
         private set
 
-    private var cachedLocationCity: String? = null
     private var cachedLocationWeather: WeatherResponse? = null
     private var cachedCityWeather: WeatherResponse? = null
 
@@ -35,7 +34,7 @@ class WeatherViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesRepository.temperatureUnitFlow.collect { unit ->
                 temperatureUnit = unit
-                refreshDisplayStrings()
+                refreshDisplayData()
             }
         }
     }
@@ -62,10 +61,9 @@ class WeatherViewModel @Inject constructor(
             locationWeatherState = WeatherUiState.Loading
             try {
                 val weather = repository.getWeatherForCity(city)
-                cachedLocationCity = city
                 cachedLocationWeather = weather
                 locationWeatherState = WeatherUiState.Success(
-                    temperatureFormatter.formatLocationTemp(city, weather, temperatureUnit)
+                    temperatureFormatter.formatWeatherData(weather, temperatureUnit)
                 )
             } catch (e: Exception) {
                 locationWeatherState = WeatherUiState.Error("Failed to fetch weather")
@@ -91,7 +89,7 @@ class WeatherViewModel @Inject constructor(
                 val weather = repository.getWeatherForCity(cityName)
                 cachedCityWeather = weather
                 cityWeatherState = WeatherUiState.Success(
-                    temperatureFormatter.formatCityTemp(weather, temperatureUnit)
+                    temperatureFormatter.formatWeatherData(weather, temperatureUnit)
                 )
             } catch (e: Exception) {
                 cityWeatherState = WeatherUiState.Error("Failed to fetch weather")
@@ -103,17 +101,15 @@ class WeatherViewModel @Inject constructor(
         locationWeatherState = WeatherUiState.Error(message)
     }
 
-    private fun refreshDisplayStrings() {
+    private fun refreshDisplayData() {
         cachedLocationWeather?.let { weather ->
-            cachedLocationCity?.let { city ->
-                locationWeatherState = WeatherUiState.Success(
-                    temperatureFormatter.formatLocationTemp(city, weather, temperatureUnit)
-                )
-            }
+            locationWeatherState = WeatherUiState.Success(
+                temperatureFormatter.formatWeatherData(weather, temperatureUnit)
+            )
         }
         cachedCityWeather?.let { weather ->
             cityWeatherState = WeatherUiState.Success(
-                temperatureFormatter.formatCityTemp(weather, temperatureUnit)
+                temperatureFormatter.formatWeatherData(weather, temperatureUnit)
             )
         }
     }

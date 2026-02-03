@@ -104,6 +104,9 @@ dependencies {
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
+    // Image loading (Coil)
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.13")
