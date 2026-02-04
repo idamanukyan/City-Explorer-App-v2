@@ -3,9 +3,26 @@ package com.example.homework4
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -14,12 +31,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.navigation.NavHostController
 
 @Composable
 fun WelcomeScreen(
-    viewModel: WeatherViewModel,
-    navController: NavHostController
+    locationWeatherState: WeatherUiState,
+    temperatureUnit: TemperatureUnit,
+    onFetchLocationWeather: () -> Unit,
+    onLocationError: (String) -> Unit,
+    onToggleTemperatureUnit: () -> Unit,
+    onCityClick: (String) -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val context = LocalContext.current
     var hasRequestedPermission by remember { mutableStateOf(false) }
@@ -28,14 +49,14 @@ fun WelcomeScreen(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            viewModel.fetchLocationWeatherFromDevice()
+            onFetchLocationWeather()
         } else {
-            viewModel.setLocationError("Location permission denied")
+            onLocationError("Location permission denied")
         }
     }
 
     LaunchedEffect(Unit) {
-        if (viewModel.locationWeatherState !is WeatherUiState.Idle) return@LaunchedEffect
+        if (locationWeatherState !is WeatherUiState.Idle) return@LaunchedEffect
 
         val hasPermission = ContextCompat.checkSelfPermission(
             context,
@@ -43,7 +64,7 @@ fun WelcomeScreen(
         ) == PackageManager.PERMISSION_GRANTED
 
         if (hasPermission) {
-            viewModel.fetchLocationWeatherFromDevice()
+            onFetchLocationWeather()
         } else if (!hasRequestedPermission) {
             hasRequestedPermission = true
             permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
@@ -62,7 +83,7 @@ fun WelcomeScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        when (val state = viewModel.locationWeatherState) {
+        when (val state = locationWeatherState) {
             is WeatherUiState.Idle -> {}
             is WeatherUiState.Loading -> {
                 Row(
@@ -95,7 +116,7 @@ fun WelcomeScreen(
                     modifier = Modifier.padding(8.dp)
                 )
                 Button(
-                    onClick = { viewModel.fetchLocationWeatherFromDevice() },
+                    onClick = onFetchLocationWeather,
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
                     Text(text = "Retry")
@@ -107,7 +128,7 @@ fun WelcomeScreen(
 
         citiesInfo.forEach { city ->
             Button(
-                onClick = { navController.navigate("second_screen/${city.cityName}") },
+                onClick = { onCityClick(city.cityName) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
@@ -118,17 +139,17 @@ fun WelcomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = { viewModel.toggleTemperatureUnit() }) {
+        Button(onClick = onToggleTemperatureUnit) {
             Text(
                 text = "Switch to ${
-                    if (viewModel.temperatureUnit == TemperatureUnit.Celsius) "Fahrenheit" else "Celsius"
+                    if (temperatureUnit == TemperatureUnit.Celsius) "Fahrenheit" else "Celsius"
                 }"
             )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        OutlinedButton(onClick = { navController.navigate("settings") }) {
+        OutlinedButton(onClick = onSettingsClick) {
             Text(text = "Settings")
         }
     }

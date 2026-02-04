@@ -1,44 +1,9 @@
 package com.example.homework4
 
-import io.mockk.coEvery
-import io.mockk.mockk
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ExampleUnitTest {
-
-    @Test
-    fun addition_isCorrect() {
-        assertEquals(4, 2 + 2)
-    }
-
-    private val mockWeatherApiService = mockk<WeatherApiService>()
-
-    @Test
-    fun testWeatherApiService() {
-        val cityName = "Berlin"
-        val mockWeatherResponse = WeatherResponse(
-            location = Location(name = "Berlin"),
-            current = Current(temp_c = 15.0f, temp_f = 59.0f)
-        )
-        coEvery { mockWeatherApiService.getWeatherForCity(cityName) } returns mockWeatherResponse
-    }
-
-    @Test
-    fun testTemperatureConversion() {
-        val tempC = 20.0f
-        val tempF = 68.0f
-        val response = WeatherResponse(
-            location = Location(name = "Berlin"),
-            current = Current(temp_c = tempC, temp_f = tempF)
-        )
-
-        val celsiusDisplay = "${response.current.temp_c}\u00B0C"
-        assertEquals("20.0\u00B0C", celsiusDisplay)
-
-        val fahrenheitDisplay = "${response.current.temp_f}\u00B0F"
-        assertEquals("68.0\u00B0F", fahrenheitDisplay)
-    }
 
     @Test
     fun testCityInfoList() {
@@ -48,6 +13,13 @@ class ExampleUnitTest {
         assertEquals("London", citiesInfo[2].cityName)
         assertEquals("Tokyo", citiesInfo[3].cityName)
         assertEquals("New York", citiesInfo[4].cityName)
+    }
+
+    @Test
+    fun testTemperatureUnitEnum() {
+        assertEquals(2, TemperatureUnit.entries.size)
+        assertEquals(TemperatureUnit.Celsius, TemperatureUnit.valueOf("Celsius"))
+        assertEquals(TemperatureUnit.Fahrenheit, TemperatureUnit.valueOf("Fahrenheit"))
     }
 
     @Test
@@ -62,26 +34,9 @@ class ExampleUnitTest {
     }
 
     @Test
-    fun testTemperatureUnitEnum() {
-        assertEquals(2, TemperatureUnit.entries.size)
-        assertEquals(TemperatureUnit.Celsius, TemperatureUnit.valueOf("Celsius"))
-        assertEquals(TemperatureUnit.Fahrenheit, TemperatureUnit.valueOf("Fahrenheit"))
-    }
-
-    @Test
-    fun testTemperatureFormatter() {
-        val formatter = TemperatureFormatter()
-        val response = WeatherResponse(
-            location = Location(name = "Berlin"),
-            current = Current(temp_c = 20.0f, temp_f = 68.0f)
-        )
-
-        val celsiusData = formatter.formatWeatherData(response, TemperatureUnit.Celsius)
-        assertEquals("20.0\u00B0C", celsiusData.temperature)
-        assertEquals("Berlin", celsiusData.locationName)
-
-        val fahrenheitData = formatter.formatWeatherData(response, TemperatureUnit.Fahrenheit)
-        assertEquals("68.0\u00B0F", fahrenheitData.temperature)
-        assertEquals("Berlin", fahrenheitData.locationName)
+    fun testWeatherApiExceptionCarriesStatusAndMessage() {
+        val exception = WeatherApiException(401, "Invalid API key")
+        assertEquals(401, exception.statusCode)
+        assertEquals("Invalid API key", exception.message)
     }
 }

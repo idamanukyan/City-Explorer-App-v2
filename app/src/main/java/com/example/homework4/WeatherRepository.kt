@@ -18,14 +18,15 @@ class WeatherRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getWeatherForCity(city: String): WeatherResponse {
-        val cached = weatherDao.getWeatherForCity(city)
+        val cacheKey = city.lowercase().trim()
+        val cached = weatherDao.getWeatherForCity(cacheKey)
         if (cached != null && !isCacheExpired(cached)) {
             return cached.toWeatherResponse()
         }
 
         return try {
             val response = apiService.getWeatherForCity(city)
-            weatherDao.insertWeather(response.toEntity(city))
+            weatherDao.insertWeather(response.toEntity(cacheKey))
             response
         } catch (e: Exception) {
             if (cached != null) {

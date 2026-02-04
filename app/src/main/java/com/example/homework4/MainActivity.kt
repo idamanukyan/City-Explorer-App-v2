@@ -38,8 +38,13 @@ class MainActivity : ComponentActivity() {
                     NavHost(navController = navController, startDestination = "welcome_screen") {
                         composable("welcome_screen") {
                             WelcomeScreen(
-                                viewModel = weatherViewModel,
-                                navController = navController
+                                locationWeatherState = weatherViewModel.locationWeatherState,
+                                temperatureUnit = weatherViewModel.temperatureUnit,
+                                onFetchLocationWeather = { weatherViewModel.fetchLocationWeatherFromDevice() },
+                                onLocationError = { weatherViewModel.setLocationError(it) },
+                                onToggleTemperatureUnit = { weatherViewModel.toggleTemperatureUnit() },
+                                onCityClick = { cityName -> navController.navigate("second_screen/$cityName") },
+                                onSettingsClick = { navController.navigate("settings") }
                             )
                         }
                         composable("second_screen/{cityName}") { backStackEntry ->
@@ -48,8 +53,9 @@ class MainActivity : ComponentActivity() {
                             if (cityInfo != null) {
                                 CityDetailScreen(
                                     cityInfo = cityInfo,
-                                    navController = navController,
-                                    viewModel = weatherViewModel
+                                    cityWeatherState = weatherViewModel.cityWeatherState,
+                                    onFetchCityWeather = { weatherViewModel.fetchCityWeather(it) },
+                                    onBack = { navController.popBackStack() }
                                 )
                             } else {
                                 Column(
@@ -75,8 +81,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("settings") {
                             SettingsScreen(
-                                viewModel = weatherViewModel,
-                                navController = navController
+                                temperatureUnit = weatherViewModel.temperatureUnit,
+                                onSetTemperatureUnit = { weatherViewModel.setTemperatureUnit(it) },
+                                onBack = { navController.popBackStack() }
                             )
                         }
                     }

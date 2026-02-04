@@ -1,9 +1,23 @@
 package com.example.homework4
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -12,17 +26,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 
 @Composable
 fun CityDetailScreen(
     cityInfo: CityInfo,
-    navController: NavHostController,
-    viewModel: WeatherViewModel
+    cityWeatherState: WeatherUiState,
+    onFetchCityWeather: (String) -> Unit,
+    onBack: () -> Unit
 ) {
     LaunchedEffect(cityInfo.cityName) {
-        viewModel.fetchCityWeather(cityInfo.cityName)
+        onFetchCityWeather(cityInfo.cityName)
     }
 
     Column(
@@ -38,7 +52,7 @@ fun CityDetailScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        when (val state = viewModel.cityWeatherState) {
+        when (val state = cityWeatherState) {
             is WeatherUiState.Idle -> {}
             is WeatherUiState.Loading -> {
                 CircularProgressIndicator(modifier = Modifier.padding(16.dp))
@@ -59,7 +73,7 @@ fun CityDetailScreen(
                     modifier = Modifier.padding(8.dp)
                 )
                 Button(
-                    onClick = { viewModel.fetchCityWeather(cityInfo.cityName) },
+                    onClick = { onFetchCityWeather(cityInfo.cityName) },
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Text(text = "Retry")
@@ -69,7 +83,7 @@ fun CityDetailScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(onClick = { navController.popBackStack() }) {
+        Button(onClick = onBack) {
             Text(text = "Back")
         }
     }

@@ -1,7 +1,14 @@
 package com.example.homework4
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -9,12 +16,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
 
 @Composable
 fun SettingsScreen(
-    viewModel: WeatherViewModel,
-    navController: NavHostController
+    temperatureUnit: TemperatureUnit,
+    onSetTemperatureUnit: (TemperatureUnit) -> Unit,
+    onBack: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -35,8 +42,8 @@ fun SettingsScreen(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             RadioButton(
-                selected = viewModel.temperatureUnit == TemperatureUnit.Celsius,
-                onClick = { viewModel.setTemperatureUnit(TemperatureUnit.Celsius) }
+                selected = temperatureUnit == TemperatureUnit.Celsius,
+                onClick = { onSetTemperatureUnit(TemperatureUnit.Celsius) }
             )
             Text(
                 text = "Celsius (\u00B0C)",
@@ -46,8 +53,8 @@ fun SettingsScreen(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             RadioButton(
-                selected = viewModel.temperatureUnit == TemperatureUnit.Fahrenheit,
-                onClick = { viewModel.setTemperatureUnit(TemperatureUnit.Fahrenheit) }
+                selected = temperatureUnit == TemperatureUnit.Fahrenheit,
+                onClick = { onSetTemperatureUnit(TemperatureUnit.Fahrenheit) }
             )
             Text(
                 text = "Fahrenheit (\u00B0F)",
@@ -57,7 +64,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(onClick = { navController.popBackStack() }) {
+        Button(onClick = onBack) {
             Text(text = "Back")
         }
     }
