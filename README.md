@@ -1,121 +1,157 @@
-🌍 City Explorer App
+# City Explorer App
 
-An Android app built with Kotlin + Jetpack Compose that allows users to explore cities, view descriptions and images, and fetch real-time weather data with support for Celsius/Fahrenheit toggling.
+An Android app built with Kotlin and Jetpack Compose that lets users explore cities and view real-time weather data with support for Celsius/Fahrenheit toggling, offline caching, and device location detection.
 
-This version improves on Homework 2 by adding settings, unit switching, and enhanced location-based weather display.
-
-🎯 Overview
+## Overview
 
 The app demonstrates:
 
-Jetpack Compose UI with navigation between screens
+- Jetpack Compose UI with multi-screen navigation
+- MVVM architecture with Hilt dependency injection
+- REST API integration with [WeatherAPI](https://www.weatherapi.com/) via Ktor Client
+- Room database caching with 30-minute TTL and offline fallback
+- DataStore-backed user preferences
+- Runtime location permission handling via FusedLocationProviderClient
+- Dynamic temperature unit switching (C / F)
+- Material 3 design with dynamic color support (Android 12+)
 
-REST API integration with WeatherAPI
- (via Ktor Client)
+## Features
 
-Runtime location permission handling
+### Welcome Screen
+- Buttons to explore predefined cities (Berlin, Paris, London, Tokyo, New York)
+- Displays current location weather with unit conversion
+- Requests location permissions at runtime
+- Toggle temperature unit inline or via Settings
 
-Dynamic temperature unit switching (°C ↔ °F)
+### City Detail Screen
+- Weather icon, temperature, and "feels like" display
+- Humidity, wind speed/direction, and UV index cards
+- Material 3 ElevatedCard layout with scroll support
 
-Composable-based architecture for modular UI
+### Settings Screen
+- Radio button selector for Celsius / Fahrenheit
+- Preference persisted via DataStore
 
-✨ Features
+### Weather Integration
+- Fetches live weather data from WeatherAPI for location and selected cities
+- 30-minute Room cache with automatic expiry (injectable Clock for testability)
+- Falls back to expired cache on network failure
+- Case-insensitive cache keys prevent duplicate entries
+- HTTP status code validation with user-friendly error messages (invalid key, rate limit, no internet)
 
-🏙️ Welcome Screen
+### Location
+- FusedLocationProviderClient with `lastLocation` + `getCurrentLocation` fallback
+- Async Geocoder on API 33+, sync fallback for older devices
+- Graceful handling of permission denial and location unavailability
 
-Buttons to explore predefined cities
+## Architecture
 
-Displays current location weather (with unit conversion)
+```
+Presentation          Domain              Data
++-----------+    +----------------+    +------------------+
+| Compose   |--->| WeatherViewModel|--->| WeatherRepository|
+| Screens   |    |                |    |   (interface)    |
+| (hoisted  |    | LocationRepo   |    +--------+---------+
+|  state)   |    | TempFormatter  |             |
++-----------+    | PreferencesRepo|    +--------+---------+
+                 +----------------+    | WeatherRepoImpl  |
+                                       |   +-- ApiService  |
+                                       |   +-- WeatherDao  |
+                                       |   +-- Clock       |
+                                       +------------------+
+```
 
-Requests location permissions
+- **State hoisting**: Composables receive state values and lambda callbacks, not ViewModels
+- **Repository pattern**: Single source of truth with cache-first strategy
+- **Dependency injection**: Hilt modules for network, database, repository, and clock
 
-🌤️ Weather Integration
+## Project Structure
 
-Fetches live weather data for both current location and selected cities
+```
+app/src/main/java/com/example/homework4/
+├── CityExplorerApp.kt            # @HiltAndroidApp entry point
+├── MainActivity.kt               # Navigation host, ViewModel wiring
+├── WeatherViewModel.kt           # UI state management, error mapping
+├── WelcomeScreen.kt              # Home screen (hoisted state)
+├── CityDetailScreen.kt           # Weather detail (hoisted state)
+├── SettingsScreen.kt             # Preferences (hoisted state)
+├── WeatherApiService.kt          # Ktor HTTP client with URL-safe params
+├── WeatherRepository.kt          # Cache-first repository with Clock
+├── LocationRepository.kt         # FusedLocationProviderClient + Geocoder
+├── WeatherResponse.kt            # API DTOs + error types
+├── WeatherDisplayData.kt         # Formatted UI model
+├── WeatherUiState.kt             # Sealed class: Idle/Loading/Success/Error
+├── CityInfo.kt                   # City list data
+├── TemperatureUnit.kt            # Celsius/Fahrenheit enum
+├── TemperatureFormatter.kt       # Response -> display data conversion
+├── data/
+│   ├── AppDatabase.kt            # Room database (v2)
+│   ├── WeatherEntity.kt          # Cache entity
+│   ├── WeatherDao.kt             # Room DAO
+│   └── PreferencesRepository.kt  # DataStore preferences
+├── di/
+│   ├── NetworkModule.kt          # HttpClient with timeouts, Json, API key
+│   ├── DatabaseModule.kt         # Room database provider
+│   ├── RepositoryModule.kt       # Repository binding
+│   ├── ClockModule.kt            # Injectable Clock
+│   └── ApiKey.kt                 # @ApiKey qualifier
+└── ui/theme/
+    ├── Color.kt
+    ├── Theme.kt                  # CityExplorerTheme with dynamic colors
+    └── Type.kt
+```
 
-Displays temperature in Celsius or Fahrenheit
+## Tech Stack
 
-⚙️ Settings Page (planned)
+| Category | Library | Version |
+|----------|---------|---------|
+| Language | Kotlin | 2.1.0 |
+| UI | Jetpack Compose + Material 3 | BOM 2024.12.01 |
+| Navigation | Navigation Compose | 2.8.5 |
+| DI | Hilt | 2.53.1 |
+| HTTP | Ktor Client (OkHttp engine) | 3.0.3 |
+| Serialization | kotlinx-serialization | 1.7.3 |
+| Database | Room | 2.6.1 |
+| Preferences | DataStore | 1.1.1 |
+| Location | Play Services Location | 21.3.0 |
+| Images | Coil Compose | 2.7.0 |
+| Testing | JUnit 4 + MockK + Coroutines Test | - |
 
-Switch between Celsius and Fahrenheit globally
+## Getting Started
 
-📷 City Detail Screen
+1. Clone the repository:
+   ```
+   git clone https://github.com/idamanukyan/City-Explorer-App-v2.git
+   ```
 
-City description text
+2. Create `local.properties` in the project root and add your WeatherAPI key:
+   ```
+   WEATHER_API_KEY=your_api_key_here
+   ```
 
-Image of the city
+3. Open in Android Studio, sync Gradle, and run on an emulator or device (min SDK 28).
 
-Real-time temperature
+## Testing
 
-🔒 Location Permission Handling
+The project includes unit tests covering:
 
-Requests runtime permissions before fetching current location weather
+- **WeatherRepositoryTest** -- cache hit/miss/expiry, API fallback, key normalization, clock-based TTL
+- **WeatherViewModelTest** -- state transitions, error message mapping (401, 429, IOException), location flow
+- **TemperatureFormatterTest** -- unit conversion, icon URL handling, field mapping, day/night
 
-📂 Project Structure
+Run tests with:
+```
+./gradlew test
+```
 
-MainActivity → Entry point, sets up navigation & theme
+## Future Enhancements
 
-WelcomeScreen → City list, location permission, weather display
+- Search for any city (not just the predefined list)
+- Weather forecast (3-5 day outlook)
+- User-managed favorites list
+- Multi-language support
+- Pull-to-refresh on detail screen
 
-SecondScreen → City details + weather in selected unit
-
-SettingsPage → Placeholder for future temperature unit settings
-
-LocationPermissionRequester → Handles fine location permissions
-
-WeatherApiService → Uses Ktor Client to fetch data from WeatherAPI
-
-TemperatureUnit → Enum to toggle between Celsius/Fahrenheit
-
-🛠️ Tech Stack
-
-Language: Kotlin
-
-UI: Jetpack Compose + Material 3
-
-Navigation: Navigation Compose
-
-API: Ktor Client (WeatherAPI integration)
-
-Permissions: AndroidX Activity + ViewModel
-
-State Management: Compose remember + mutableStateOf
-
-🚀 Getting Started
-
-Clone the repository:
-
-git clone https://github.com/<your-username>/CityExplorerApp-Homework4.git
-
-
-Open in Android Studio.
-
-Add your WeatherAPI key in WeatherApiService:
-
-val weatherApiService = WeatherApiService("your_api_key_here")
-
-
-Build & run on an emulator or Android device.
-
-📊 Example User Flow
-flowchart TD
-    A[Welcome Screen] -->|Select City| B[City Detail Screen]
-    A -->|Location Permission Granted| C[Show Current Location Weather]
-    A -->|Go to Settings| D[Settings Page]
-    D -->|Change Unit °C/°F| A
-
-🔮 Future Enhancements
-
-Full Settings Page for global temperature unit switching
-
-Advanced search for more cities
-
-Multi-language support (German/English)
-
-Weather forecast (next 3–5 days)
-
-👩‍💻 Author
+## Author
 
 Developed by Ida Manukyan
-📧 idamyan01@gmail.com
- | 🌍 GitHub
