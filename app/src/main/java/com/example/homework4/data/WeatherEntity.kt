@@ -22,5 +22,5 @@ data class WeatherEntity(
     val feelslikeFahrenheit: Float = 0f,
     val uv: Float = 0f,
     val isDay: Int = 1,
-    val lastUpdated: Long = System.currentTimeMillis()
+    val lastUpdated: Long = 0L
 )

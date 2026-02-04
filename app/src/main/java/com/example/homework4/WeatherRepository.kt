@@ -2,6 +2,7 @@ package com.example.homework4
 
 import com.example.homework4.data.WeatherDao
 import com.example.homework4.data.WeatherEntity
+import com.example.homework4.di.Clock
 import javax.inject.Inject
 
 interface WeatherRepository {
@@ -10,7 +11,8 @@ interface WeatherRepository {
 
 class WeatherRepositoryImpl @Inject constructor(
     private val apiService: WeatherApiService,
-    private val weatherDao: WeatherDao
+    private val weatherDao: WeatherDao,
+    private val clock: Clock
 ) : WeatherRepository {
 
     companion object {
@@ -38,7 +40,7 @@ class WeatherRepositoryImpl @Inject constructor(
     }
 
     private fun isCacheExpired(entity: WeatherEntity): Boolean {
-        return System.currentTimeMillis() - entity.lastUpdated > CACHE_DURATION_MS
+        return clock.currentTimeMillis() - entity.lastUpdated > CACHE_DURATION_MS
     }
 
     private fun WeatherEntity.toWeatherResponse(): WeatherResponse {
@@ -85,7 +87,7 @@ class WeatherRepositoryImpl @Inject constructor(
             feelslikeFahrenheit = current.feelslike_f,
             uv = current.uv,
             isDay = current.is_day,
-            lastUpdated = System.currentTimeMillis()
+            lastUpdated = clock.currentTimeMillis()
         )
     }
 }

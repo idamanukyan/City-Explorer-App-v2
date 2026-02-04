@@ -104,6 +104,10 @@ dependencies {
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
+    // Location (Google Play Services)
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+
     // Image loading (Coil)
     implementation("io.coil-kt:coil-compose:2.7.0")
 

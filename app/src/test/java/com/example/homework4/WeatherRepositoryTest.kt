@@ -2,6 +2,7 @@ package com.example.homework4
 
 import com.example.homework4.data.WeatherDao
 import com.example.homework4.data.WeatherEntity
+import com.example.homework4.di.Clock
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -15,6 +16,7 @@ class WeatherRepositoryTest {
 
     private val mockApiService = mockk<WeatherApiService>()
     private val mockDao = mockk<WeatherDao>(relaxed = true)
+    private val fakeClock = FakeClock()
     private lateinit var repository: WeatherRepositoryImpl
 
     private val apiResponse = WeatherResponse(
@@ -43,16 +45,16 @@ class WeatherRepositoryTest {
         windKph = 20.0f,
         windMph = 12.4f,
         windDir = "SW",
-        lastUpdated = System.currentTimeMillis() // fresh
+        lastUpdated = fakeClock.currentTimeMillis() // fresh
     )
 
     private fun expiredCacheEntity(cityName: String = "berlin") = freshCacheEntity(cityName).copy(
-        lastUpdated = System.currentTimeMillis() - (31 * 60 * 1000L) // 31 minutes ago
+        lastUpdated = fakeClock.currentTimeMillis() - (31 * 60 * 1000L) // 31 minutes ago
     )
 
     @Before
     fun setUp() {
-        repository = WeatherRepositoryImpl(mockApiService, mockDao)
+        repository = WeatherRepositoryImpl(mockApiService, mockDao, fakeClock)
     }
 
     @Test
@@ -135,4 +137,26 @@ class WeatherRepositoryTest {
 
         coVerify { mockDao.getWeatherForCity("berlin") }
     }
+
+    @Test
+    fun getWeatherForCity_cacheExpiry_respectsClockAdvance() = runTest {
+        val entity = freshCacheEntity()
+        coEvery { mockDao.getWeatherForCity("berlin") } returns entity
+        coEvery { mockApiService.getWeatherForCity("Berlin") } returns apiResponse
+
+        // First call: cache is fresh
+        repository.getWeatherForCity("Berlin")
+        coVerify(exactly = 0) { mockApiService.getWeatherForCity(any()) }
+
+        // Advance clock past cache duration
+        fakeClock.advanceBy(31 * 60 * 1000L)
+
+        repository.getWeatherForCity("Berlin")
+        coVerify(exactly = 1) { mockApiService.getWeatherForCity("Berlin") }
+    }
+}
+
+class FakeClock(private var timeMillis: Long = 1_000_000_000L) : Clock {
+    override fun currentTimeMillis(): Long = timeMillis
+    fun advanceBy(millis: Long) { timeMillis += millis }
 }
