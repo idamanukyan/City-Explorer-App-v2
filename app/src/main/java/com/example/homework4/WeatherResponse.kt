@@ -35,3 +35,19 @@ data class Current(
     val uv: Float = 0f,
     val is_day: Int = 1
 )
+
+@Serializable
+data class WeatherApiError(
+    val error: WeatherApiErrorDetail
+)
+
+@Serializable
+data class WeatherApiErrorDetail(
+    val code: Int = 0,
+    val message: String = "Unknown error"
+)
+
+class WeatherApiException(
+    val statusCode: Int,
+    override val message: String
+) : Exception(message)

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.homework4.data.PreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import java.io.IOException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -66,7 +67,7 @@ class WeatherViewModel @Inject constructor(
                     temperatureFormatter.formatWeatherData(weather, temperatureUnit)
                 )
             } catch (e: Exception) {
-                locationWeatherState = WeatherUiState.Error("Failed to fetch weather")
+                locationWeatherState = WeatherUiState.Error(userFriendlyMessage(e))
             }
         }
     }
@@ -92,13 +93,24 @@ class WeatherViewModel @Inject constructor(
                     temperatureFormatter.formatWeatherData(weather, temperatureUnit)
                 )
             } catch (e: Exception) {
-                cityWeatherState = WeatherUiState.Error("Failed to fetch weather")
+                cityWeatherState = WeatherUiState.Error(userFriendlyMessage(e))
             }
         }
     }
 
     fun setLocationError(message: String) {
         locationWeatherState = WeatherUiState.Error(message)
+    }
+
+    private fun userFriendlyMessage(e: Exception): String = when (e) {
+        is WeatherApiException -> when (e.statusCode) {
+            401 -> "Invalid API key"
+            403 -> "API access denied"
+            429 -> "Too many requests — please try again later"
+            else -> e.message ?: "API error (${e.statusCode})"
+        }
+        is IOException -> "No internet connection"
+        else -> "Failed to fetch weather"
     }
 
     private fun refreshDisplayData() {
